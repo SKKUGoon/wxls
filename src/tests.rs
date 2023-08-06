@@ -75,6 +75,15 @@ fn test_relocate() {
 #[test]
 fn test_rc_to_str() {
     let (row, col) = (3u32, 5u32);
-    let addr = rc_to_str(&row, &col);
-    assert_eq!(addr, "F4");
+    let addr1 = rc_to_str(&row, &col, false, false);
+    assert_eq!(addr1, "F4");
+
+    let addr2 = rc_to_str(&row, &col, true, false);
+    assert_eq!(addr2, "F$4");
+
+    let addr3 = rc_to_str(&row, &col, false, true);
+    assert_eq!(addr3, "$F4");
+
+    let addr4 = rc_to_str(&row, &col, true, true);
+    assert_eq!(addr4, "$F$4");
 }

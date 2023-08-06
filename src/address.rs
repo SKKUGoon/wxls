@@ -36,11 +36,16 @@ impl AddressRC {
     }
 
     pub fn to_cell_address(&self) -> String {
-        let start_address = rc_to_str(&self.start_row, &self.start_col);
+        let start_address = rc_to_str(
+            &self.start_row,
+            &self.start_col,
+            self.fix_row,
+            self.fix_column,
+        );
 
         match (self.end_row, self.end_col) {
             (Some(r), Some(c)) => {
-                let end_address = rc_to_str(&r, &c);
+                let end_address = rc_to_str(&r, &c, self.fix_row, self.fix_column);
                 format!("{}:{}", start_address, end_address)
             }
             _ => start_address,
@@ -93,23 +98,32 @@ impl PartialEq for AddressRC {
     }
 }
 
-pub fn rc_to_str(row: &u32, col: &u32) -> String {
+pub fn rc_to_str(row: &u32, col: &u32, rowfix: bool, colfix: bool) -> String {
     let wr = row + 1;
     let mut wc = col + 1;
 
-    let mut str_address = String::from("");
-    str_address = loop {
+    let mut str_column = String::from("");
+    str_column = loop {
         let remain = (wc - 1) % 26;
         let name_element = char::from_u32(65u32 + remain).unwrap();
 
-        str_address.push(name_element);
+        str_column.push(name_element);
         wc = (wc - remain) / 26;
         if wc == 0 {
-            break str_address;
+            break rc_fix(&str_column, colfix);
         }
     };
 
-    str_address.push(std::char::from_digit(wr, 10).unwrap());
+    let str_row = rc_fix(&wr.to_string(), rowfix);
 
-    str_address
+    format!("{}{}", str_column, str_row)
+}
+
+fn rc_fix(value: &str, fix: bool) -> String {
+    if fix {
+        let fixed = format!("${}", value);
+        fixed
+    } else {
+        String::from(value)
+    }
 }
