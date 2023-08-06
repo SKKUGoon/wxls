@@ -30,7 +30,14 @@ workbook              // Your typical opened excel program
             └─ Cells  // Cell address (A1)
 ```
 
-Each `Cells` have string address such as (A1) and row-column address, that's automatically converted into string address. 
+
+### Address
+Each `Cells` have string `address` such as (A1) and `row-column address`, that's automatically converted into string address within excel. 
+
+`WXLS` use row column address as a default, because it's much easier to manipulate around by adding integers, but generates string typed address whenever it's needed via `to_cell_address` methods implemented in the struct. 
+
+### Cells
+
 
 `wxls` aims to allow users to 
 1. Create function over designated area.

@@ -37,6 +37,15 @@ fn test_new() {
 }
 
 #[test]
+fn test_from_str() {
+    let single_cell = "AB1";
+    AddressRC::from_str(single_cell);
+
+    let multi_cell = "AB12:CD12";
+    AddressRC::from_str(multi_cell);
+}
+
+#[test]
 fn test_to_cell_address() {
     // Test case: Valid input with length 2
     let data1 = vec![1, 2];
@@ -86,4 +95,34 @@ fn test_rc_to_str() {
 
     let addr4 = rc_to_str(&row, &col, true, true);
     assert_eq!(addr4, "$F$4");
+}
+
+#[test]
+fn test_str_to_rc() {
+    let cell_addr1 = "A1";
+    let rc_addr1 = str_to_rc(cell_addr1).unwrap();
+    assert_eq!(rc_addr1, (0, 0));
+
+    let cell_addr2 = "C4";
+    let rc_addr2 = str_to_rc(cell_addr2).unwrap();
+    assert_eq!(rc_addr2, (3, 2));
+}
+
+#[test]
+fn test_str_is_fix() {
+    let cell_addr1 = "A$1";
+    let rc_addr1 = str_is_fix(cell_addr1);
+    assert_eq!(rc_addr1, (true, false));
+
+    let cell_addr2 = "C4";
+    let rc_addr2 = str_is_fix(cell_addr2);
+    assert_eq!(rc_addr2, (false, false));
+
+    let cell_addr3 = "$CC4";
+    let rc_addr2 = str_is_fix(cell_addr3);
+    assert_eq!(rc_addr2, (false, true));
+
+    let cell_addr4 = "$XFC$4D";
+    let rc_addr2 = str_is_fix(cell_addr4);
+    assert_eq!(rc_addr2, (true, true));
 }

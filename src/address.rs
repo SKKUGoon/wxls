@@ -35,6 +35,14 @@ impl AddressRC {
         }
     }
 
+    pub fn from_str(data: &str) {
+        if data.contains(':') {
+            let cells: Vec<&str> = data.split(':').collect();
+        } else {
+            println!("{}", data)
+        }
+    }
+
     pub fn to_cell_address(&self) -> String {
         let start_address = rc_to_str(
             &self.start_row,
@@ -126,4 +134,46 @@ fn rc_fix(value: &str, fix: bool) -> String {
     } else {
         String::from(value)
     }
+}
+
+pub fn str_to_rc(address: &str) -> Option<(usize, usize)> {
+    let chars = address.chars();
+    let mut column = 0;
+    let mut row = 0;
+
+    for c in chars {
+        if c.is_ascii_digit() {
+            row = row * 10 + (c as usize - '0' as usize);
+        } else if c.is_ascii_alphabetic() {
+            column = column * 26 + (c.to_ascii_uppercase() as usize - 'A' as usize) + 1;
+        } else {
+            return None;
+        }
+    }
+
+    if row == 0 || column == 0 {
+        return None;
+    }
+
+    Some((row - 1, column - 1))
+}
+
+pub fn str_is_fix(address: &str) -> (bool, bool) {
+    let mut chars = address.chars().peekable();
+    let mut row_fixed = false;
+    let mut col_fixed = false;
+
+    while let Some(c) = chars.next() {
+        if c == '$' {
+            if let Some(next_char) = chars.peek() {
+                if next_char.is_ascii_alphabetic() {
+                    col_fixed = true;
+                } else if next_char.is_ascii_digit() {
+                    row_fixed = true;
+                }
+            }
+        }
+    }
+
+    (row_fixed, col_fixed)
 }
