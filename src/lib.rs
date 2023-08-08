@@ -1,10 +1,8 @@
-mod address;
 mod cell;
-mod cursor;
+mod range;
 
-pub use address::*;
 pub use cell::*;
-pub use cursor::*;
+pub use range::*;
 
 #[cfg(test)]
 mod tests;
