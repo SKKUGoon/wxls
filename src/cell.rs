@@ -16,6 +16,21 @@ pub struct Cell {
     pub fix_end: bool,
 }
 
+/// axis 0: A1 => A$1
+/// axis 1: A1 => $A1
+/// axis 2: A1 => $A$1
+pub enum AnchorStyle {
+    Row = 0,
+    Column = 1,
+    All = 2,
+}
+
+pub enum AddressComponent {
+    Front = 0,
+    Back = 1,
+    Both = 2,
+}
+
 impl Cell {
     pub fn new(data: Vec<u32>) -> Result<Self, String> {
         // start_anchor and end_anchor
@@ -29,9 +44,18 @@ impl Cell {
             }),
             4 => Ok(Cell {
                 start_row: data[0],
-                end_row: Some(data[1]),
                 start_col: data[2],
-                end_col: Some(data[3]),
+
+                end_row: if data[0] != data[1] {
+                    Some(data[1])
+                } else {
+                    None
+                },
+                end_col: if data[2] != data[3] {
+                    Some(data[3])
+                } else {
+                    None
+                },
                 ..Default::default()
             }),
             _ => Err("Invalid data length".to_string()),
@@ -101,28 +125,44 @@ impl Cell {
         }
     }
 
-    pub fn anchor(&mut self, axis: u8, cell: u8) {
-        // axis 0: A1 => A$1
-        // axis 1: A1 => $A1
-        // axis 2: A1 => $A$1
+    pub fn address_component(&self, cell: AddressComponent) -> Result<String, String> {
+        match cell {
+            AddressComponent::Front => Ok(rc_to_str(
+                &self.start_row,
+                &self.start_col,
+                self.fix_row && self.fix_start,
+                self.fix_column && self.fix_start,
+            )),
+            AddressComponent::Back => match (self.end_row, self.end_col) {
+                (Some(r), Some(c)) => Ok(rc_to_str(
+                    &r,
+                    &c,
+                    self.fix_row && self.fix_end,
+                    self.fix_column && self.fix_end,
+                )),
+                _ => Err(String::from("no second component")),
+            },
+            _ => Err(String::from("Should choose only one")),
+        }
+    }
 
+    pub fn anchor(&mut self, axis: AnchorStyle, cell: AddressComponent) {
         // cell 0: A1:B1 => only A1 is affected
         // cell 1: A1:B1 => only B1 is affected
         // cell 2: A1:B1 => Both A1, B1 is affected
         match axis {
-            0u8 => {
-                self.fix_row(cell);
+            AnchorStyle::Row => {
+                self.fix_row(&cell);
                 self.fix_column = false;
             }
-            1u8 => {
-                self.fix_col(cell);
+            AnchorStyle::Column => {
+                self.fix_col(&cell);
                 self.fix_row = false;
             }
-            2u8 => {
-                self.fix_row(cell);
-                self.fix_col(cell);
+            AnchorStyle::All => {
+                self.fix_row(&cell);
+                self.fix_col(&cell);
             }
-            _ => eprintln!("Wrong axis. Nothing happens"),
         }
     }
 
@@ -133,41 +173,39 @@ impl Cell {
         self.fix_end = false;
     }
 
-    fn fix_row(&mut self, cell: u8) {
+    fn fix_row(&mut self, cell: &AddressComponent) {
         self.fix_row = true;
         match cell {
-            0u8 => {
+            AddressComponent::Front => {
                 self.fix_start = true;
                 self.fix_end = false;
             }
-            1u8 => {
+            AddressComponent::Back => {
                 self.fix_start = false;
                 self.fix_end = true;
             }
-            2u8 => {
+            AddressComponent::Both => {
                 self.fix_start = true;
                 self.fix_end = true
             }
-            _ => eprintln!("Wrong cell option. Nothing happends"),
         }
     }
 
-    fn fix_col(&mut self, cell: u8) {
+    fn fix_col(&mut self, cell: &AddressComponent) {
         self.fix_column = true;
         match cell {
-            0u8 => {
+            AddressComponent::Front => {
                 self.fix_start = true;
                 self.fix_end = false;
             }
-            1u8 => {
+            AddressComponent::Back => {
                 self.fix_start = false;
                 self.fix_end = true;
             }
-            2u8 => {
+            AddressComponent::Both => {
                 self.fix_start = true;
                 self.fix_end = true
             }
-            _ => eprintln!("Wrong cell option. Nothing happends"),
         }
     }
 

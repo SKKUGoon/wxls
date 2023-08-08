@@ -1,4 +1,4 @@
-use crate::Cell;
+use crate::{AddressComponent, Cell};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -17,7 +17,19 @@ impl Range {
     }
 
     pub fn to_str_address(&self) -> String {
-        format!("{}!{}", self.sheet, self.address.to_str_address())
+        let front = format!(
+            "{}!{}",
+            self.sheet,
+            self.address
+                .address_component(AddressComponent::Front)
+                .unwrap()
+        );
+
+        if let Ok(back) = self.address.address_component(AddressComponent::Back) {
+            format!("{}:{}!{}", front, self.sheet, back)
+        } else {
+            front
+        }
     }
 
     // pub fn envelope<T>(matrix: Vec<Vec<T>>) {

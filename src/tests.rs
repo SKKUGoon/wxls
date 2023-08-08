@@ -64,42 +64,42 @@ fn test_to_cell_address_fix() {
     // Test case: Valid input with length 2 and fixed
     let data1 = vec![1, 2];
     let mut addr1 = Cell::new(data1).unwrap();
-    addr1.anchor(0, 0);
+    addr1.anchor(AnchorStyle::Row, AddressComponent::Front);
     assert_eq!(addr1.to_str_address(), String::from("C$2"));
 
-    addr1.anchor(1, 0);
+    addr1.anchor(AnchorStyle::Column, AddressComponent::Front);
     assert_eq!(addr1.to_str_address(), String::from("$C2"));
 
-    addr1.anchor(2, 0);
+    addr1.anchor(AnchorStyle::All, AddressComponent::Front);
     assert_eq!(addr1.to_str_address(), String::from("$C$2"));
 
     let data2 = vec![1, 2, 3, 4];
     let mut addr2 = Cell::new(data2).unwrap();
-    addr2.anchor(0, 0);
+    addr2.anchor(AnchorStyle::Row, AddressComponent::Front);
     assert_eq!(addr2.to_str_address(), String::from("D$2:E3"));
 
-    addr2.anchor(0, 1);
+    addr2.anchor(AnchorStyle::Row, AddressComponent::Back);
     assert_eq!(addr2.to_str_address(), String::from("D2:E$3"));
 
-    addr2.anchor(0, 2);
+    addr2.anchor(AnchorStyle::Row, AddressComponent::Both);
     assert_eq!(addr2.to_str_address(), String::from("D$2:E$3"));
 
-    addr2.anchor(1, 0);
+    addr2.anchor(AnchorStyle::Column, AddressComponent::Front);
     assert_eq!(addr2.to_str_address(), String::from("$D2:E3"));
 
-    addr2.anchor(1, 1);
+    addr2.anchor(AnchorStyle::Column, AddressComponent::Back);
     assert_eq!(addr2.to_str_address(), String::from("D2:$E3"));
 
-    addr2.anchor(1, 2);
+    addr2.anchor(AnchorStyle::Column, AddressComponent::Both);
     assert_eq!(addr2.to_str_address(), String::from("$D2:$E3"));
 
-    addr2.anchor(2, 0);
+    addr2.anchor(AnchorStyle::All, AddressComponent::Front);
     assert_eq!(addr2.to_str_address(), String::from("$D$2:E3"));
 
-    addr2.anchor(2, 1);
+    addr2.anchor(AnchorStyle::All, AddressComponent::Back);
     assert_eq!(addr2.to_str_address(), String::from("D2:$E$3"));
 
-    addr2.anchor(2, 2);
+    addr2.anchor(AnchorStyle::All, AddressComponent::Both);
     assert_eq!(addr2.to_str_address(), String::from("$D$2:$E$3"));
 }
 
@@ -175,7 +175,17 @@ fn test_str_is_fix() {
 #[test]
 fn test_to_cell() {
     let data1 = vec![1, 2];
-    let addr = Cell::new(data1).unwrap();
-    let cell = Range::new("Sheet1", addr);
-    assert_eq!(cell.to_str_address(), String::from("Sheet1!C2"));
+    let addr1 = Cell::new(data1).unwrap();
+    let cell2 = Range::new("Sheet1", addr1);
+    assert_eq!(cell2.to_str_address(), String::from("Sheet1!C2"));
+
+    let data2 = vec![1, 1, 2, 2];
+    let addr2 = Cell::new(data2).unwrap();
+    let cell2 = Range::new("Sheet1", addr2);
+    assert_eq!(cell2.to_str_address(), String::from("Sheet1!C2")); // Auto reduce
+
+    let data3 = vec![0, 1, 1, 2];
+    let addr3 = Cell::new(data3).unwrap();
+    let cell3 = Range::new("Sheet2", addr3);
+    assert_eq!(cell3.to_str_address(), String::from("Sheet2!B1:Sheet2!C2"));
 }
