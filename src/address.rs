@@ -35,11 +35,44 @@ impl AddressRC {
         }
     }
 
-    pub fn from_str(data: &str) {
-        if data.contains(':') {
-            let cells: Vec<&str> = data.split(':').collect();
-        } else {
-            println!("{}", data)
+    pub fn from_str_address(data: &str) -> Result<Self, String> {
+        match data.contains(':') {
+            true => {
+                let cells: Vec<&str> = data.split(':').collect();
+                if cells.len() != 2 {
+                    return Err("Invalid origin string".to_string());
+                }
+
+                let start_cell = cells[0];
+                let end_cell = cells[1];
+
+                if let (Some((sr, sc)), Some((er, ec))) =
+                    (str_to_rc(start_cell), str_to_rc(end_cell))
+                {
+                    Ok(AddressRC {
+                        start_row: sr,
+                        start_col: sc,
+                        end_row: Some(er),
+                        end_col: Some(ec),
+                        ..Default::default()
+                    })
+                } else {
+                    Err("Invalid origin string".to_string())
+                }
+            }
+            false => {
+                if let Some((r, c)) = str_to_rc(data) {
+                    Ok(AddressRC {
+                        start_row: r,
+                        start_col: c,
+                        end_row: None,
+                        end_col: None,
+                        ..Default::default()
+                    })
+                } else {
+                    Err("Invalid origin string".to_string())
+                }
+            }
         }
     }
 
@@ -136,26 +169,26 @@ fn rc_fix(value: &str, fix: bool) -> String {
     }
 }
 
-pub fn str_to_rc(address: &str) -> Option<(usize, usize)> {
+pub fn str_to_rc(address: &str) -> Option<(u32, u32)> {
     let chars = address.chars();
-    let mut column = 0;
-    let mut row = 0;
+    let mut column = 0isize;
+    let mut row = 0isize;
 
     for c in chars {
         if c.is_ascii_digit() {
-            row = row * 10 + (c as usize - '0' as usize);
+            row = row * 10 + (c as usize - '0' as usize) as isize;
         } else if c.is_ascii_alphabetic() {
-            column = column * 26 + (c.to_ascii_uppercase() as usize - 'A' as usize) + 1;
+            column = column * 26 + (c.to_ascii_uppercase() as usize - 'A' as usize) as isize + 1;
         } else {
             return None;
         }
     }
 
-    if row == 0 || column == 0 {
+    if row - 1 < 0 || column - 1 < 0 {
         return None;
     }
 
-    Some((row - 1, column - 1))
+    Some(((row - 1) as u32, (column - 1) as u32))
 }
 
 pub fn str_is_fix(address: &str) -> (bool, bool) {

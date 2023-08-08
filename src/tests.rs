@@ -38,11 +38,15 @@ fn test_new() {
 
 #[test]
 fn test_from_str() {
-    let single_cell = "AB1";
-    AddressRC::from_str(single_cell);
+    let single_cell = "B1";
+    let from_string = AddressRC::from_str_address(single_cell);
+    let from_index = AddressRC::new(vec![0, 1]);
+    assert_eq!(from_index, from_string);
 
-    let multi_cell = "AB12:CD12";
-    AddressRC::from_str(multi_cell);
+    let multi_cell = "A9:D12";
+    let from_string = AddressRC::from_str_address(multi_cell);
+    let from_index = AddressRC::new(vec![8, 11, 0, 3]);
+    assert_eq!(from_index, from_string);
 }
 
 #[test]
