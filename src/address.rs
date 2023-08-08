@@ -11,6 +11,9 @@ pub struct AddressRC {
 
     pub fix_row: bool,
     pub fix_column: bool,
+
+    pub fix_start: bool,
+    pub fix_end: bool,
 }
 
 impl AddressRC {
@@ -80,37 +83,85 @@ impl AddressRC {
         let start_address = rc_to_str(
             &self.start_row,
             &self.start_col,
-            self.fix_row,
-            self.fix_column,
+            self.fix_row && self.fix_start,
+            self.fix_column && self.fix_start,
         );
 
         match (self.end_row, self.end_col) {
             (Some(r), Some(c)) => {
-                let end_address = rc_to_str(&r, &c, self.fix_row, self.fix_column);
+                let end_address = rc_to_str(
+                    &r,
+                    &c,
+                    self.fix_row && self.fix_end,
+                    self.fix_column && self.fix_end,
+                );
                 format!("{}:{}", start_address, end_address)
             }
             _ => start_address,
         }
     }
 
-    pub fn anchor_cell_address(&mut self, axis: u8) {
+    pub fn anchor_cell_address(&mut self, axis: u8, cell: u8) {
+        // axis 0: A1 => A$1
+        // axis 1: A1 => $A1
+        // axis 2: A1 => $A$1
+
+        // cell 0: A1:B1 => only A1 is affected
+        // cell 1: A1:B1 => only B1 is affected
+        // cell 2: A1:B1 => Both A1, B1 is affected
         match axis {
-            0u8 => self.fix_row(),
-            1u8 => self.fix_col(),
+            0u8 => {
+                self.fix_row(cell);
+                self.fix_column = false;
+            }
+            1u8 => {
+                self.fix_col(cell);
+                self.fix_row = false;
+            }
             2u8 => {
-                self.fix_row();
-                self.fix_col();
+                self.fix_row(cell);
+                self.fix_col(cell);
             }
             _ => eprintln!("Wrong axis. Nothing happens"),
         }
     }
 
-    fn fix_row(&mut self) {
+    fn fix_row(&mut self, cell: u8) {
         self.fix_row = true;
+        match cell {
+            0u8 => {
+                self.fix_start = true;
+                self.fix_end = false;
+            }
+            1u8 => {
+                self.fix_start = false;
+                self.fix_end = true;
+            }
+            2u8 => {
+                self.fix_start = true;
+                self.fix_end = true
+            }
+            _ => eprintln!("Wrong cell option. Nothing happends"),
+        }
     }
 
-    fn fix_col(&mut self) {
+    fn fix_col(&mut self, cell: u8) {
         self.fix_column = true;
+        match cell {
+            0u8 => {
+                self.fix_start = true;
+                self.fix_end = false;
+            }
+            1u8 => {
+                self.fix_start = false;
+                self.fix_end = true;
+            }
+            2u8 => {
+                self.fix_start = true;
+                self.fix_end = true
+            }
+            _ => eprintln!("Wrong cell option. Nothing happends"),
+        }
     }
 
     pub fn relocate(&mut self, vertical: u32, horizontal: u32) {

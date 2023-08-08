@@ -63,6 +63,50 @@ fn test_to_cell_address() {
 }
 
 #[test]
+fn test_to_cell_address_fix() {
+    // Test case: Valid input with length 2 and fixed
+    let data1 = vec![1, 2];
+    let mut addr1 = AddressRC::new(data1).unwrap();
+    addr1.anchor_cell_address(0, 0);
+    assert_eq!(addr1.to_cell_address(), String::from("C$2"));
+
+    addr1.anchor_cell_address(1, 0);
+    assert_eq!(addr1.to_cell_address(), String::from("$C2"));
+
+    addr1.anchor_cell_address(2, 0);
+    assert_eq!(addr1.to_cell_address(), String::from("$C$2"));
+
+    let data2 = vec![1, 2, 3, 4];
+    let mut addr2 = AddressRC::new(data2).unwrap();
+    addr2.anchor_cell_address(0, 0);
+    assert_eq!(addr2.to_cell_address(), String::from("D$2:E3"));
+
+    addr2.anchor_cell_address(0, 1);
+    assert_eq!(addr2.to_cell_address(), String::from("D2:E$3"));
+
+    addr2.anchor_cell_address(0, 2);
+    assert_eq!(addr2.to_cell_address(), String::from("D$2:E$3"));
+
+    addr2.anchor_cell_address(1, 0);
+    assert_eq!(addr2.to_cell_address(), String::from("$D2:E3"));
+
+    addr2.anchor_cell_address(1, 1);
+    assert_eq!(addr2.to_cell_address(), String::from("D2:$E3"));
+
+    addr2.anchor_cell_address(1, 2);
+    assert_eq!(addr2.to_cell_address(), String::from("$D2:$E3"));
+
+    addr2.anchor_cell_address(2, 0);
+    assert_eq!(addr2.to_cell_address(), String::from("$D$2:E3"));
+
+    addr2.anchor_cell_address(2, 1);
+    assert_eq!(addr2.to_cell_address(), String::from("D2:$E$3"));
+
+    addr2.anchor_cell_address(2, 2);
+    assert_eq!(addr2.to_cell_address(), String::from("$D$2:$E$3"));
+}
+
+#[test]
 fn test_relocate() {
     // Test case: Valid input with length 2
     let data1 = vec![1, 2];
