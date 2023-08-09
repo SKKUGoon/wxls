@@ -19,20 +19,26 @@ pub struct Cell {
 /// axis 0: A1 => A$1
 /// axis 1: A1 => $A1
 /// axis 2: A1 => $A$1
+#[wasm_bindgen]
 pub enum AnchorStyle {
     Row = 0,
     Column = 1,
     All = 2,
 }
 
+/// cell 0: A1:B1 => only A1 is affected
+/// cell 1: A1:B1 => only B1 is affected
+/// cell 2: A1:B1 => Both A1, B1 is affected
+#[wasm_bindgen]
 pub enum AddressComponent {
     Front = 0,
     Back = 1,
     Both = 2,
 }
 
+#[wasm_bindgen]
 impl Cell {
-    pub fn new(data: Vec<u32>) -> Result<Self, String> {
+    pub fn new(data: Vec<u32>) -> Result<Cell, String> {
         // start_anchor and end_anchor
         match data.len() {
             2 => Ok(Cell {
@@ -62,7 +68,7 @@ impl Cell {
         }
     }
 
-    pub fn from_str_address(data: &str) -> Result<Self, String> {
+    pub fn from_str_address(data: &str) -> Result<Cell, String> {
         match data.contains(':') {
             true => {
                 let cells: Vec<&str> = data.split(':').collect();
@@ -147,9 +153,6 @@ impl Cell {
     }
 
     pub fn anchor(&mut self, axis: AnchorStyle, cell: AddressComponent) {
-        // cell 0: A1:B1 => only A1 is affected
-        // cell 1: A1:B1 => only B1 is affected
-        // cell 2: A1:B1 => Both A1, B1 is affected
         match axis {
             AnchorStyle::Row => {
                 self.fix_row(&cell);
