@@ -1,18 +1,18 @@
 use crate::{AddressComponent, Cell};
-use wasm_bindgen::prelude::*;
+// use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Debug, Clone, Copy)]
+// #[wasm_bindgen]
+#[derive(Debug, Clone)]
 pub struct Range {
-    sheet: &'static str,
-    address: Cell,
+    pub sheet: String,
+    pub address: Cell,
 }
 
 // #[wasm_bindgen]
 impl Range {
-    pub fn new(sheet: &'static str, rc_address: Cell) -> Self {
+    pub fn new(sheet: &str, rc_address: Cell) -> Self {
         Range {
-            sheet,
+            sheet: String::from(sheet),
             address: rc_address,
         }
     }
@@ -33,7 +33,7 @@ impl Range {
         }
     }
 
-    pub fn has(&self, other: Range) -> bool {
+    pub fn has(&self, other: &Range) -> bool {
         if other.sheet != self.sheet {
             return false;
         }
@@ -63,7 +63,7 @@ impl Range {
             return Err("Cannot include other sheet".to_string());
         }
 
-        if self.has(other) {
+        if self.has(&other) {
             return Ok(self);
         }
 
@@ -94,12 +94,12 @@ impl Range {
         })
     }
 
-    pub fn force_include(&mut self, other: Range) -> Result<&Range, String> {
+    pub fn force_include(mut self, other: Range) -> Result<Range, String> {
         if other.sheet != self.sheet {
             return Err("Cannot include other sheet".to_string());
         }
 
-        if self.has(other) {
+        if self.has(&other) {
             return Ok(self);
         }
 
