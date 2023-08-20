@@ -5,6 +5,7 @@
 
 ## How to use?
 
+For now, the project has not gone into `npm`. You'll have to download manually. 
 The following command will create a `./pkg` directory with `*.wasm` build file.
 
 ```console
@@ -27,16 +28,16 @@ Excel JS API is consisted with following hierarchy.
 ```console
 workbook              // Your typical opened excel program
 
-    └─ worksheets 
+    └─ worksheet
 
         └─ Range      // Cell range. Such as (A1:C1)
 
-            └─ Cells  // Cell address (A1)
+            └─ Cell   // Cell address (A1)
 ```
 
 
 ### Address
-Each `Cells` have string `address` such as (A1) and `row-column address`, that's automatically converted into string address within excel. 
+Each `Cell` have String type `address` such as (A1) and `row-column address`, that's automatically converted into string address within excel. 
 
 `WXLS` use row column address as a default, because it's much easier to manipulate around by adding integers, but generates string typed address whenever it's needed via `to_cell_address` methods implemented in the struct. 
 
