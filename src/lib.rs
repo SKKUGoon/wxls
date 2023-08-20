@@ -1,8 +1,15 @@
-mod cell;
-mod range;
+pub mod cell;
+pub mod range;
+
+#[macro_use]
+mod util;
 
 pub use cell::*;
 pub use range::*;
+pub use util::*;
 
+// Write unit test for each methods
 #[cfg(test)]
-mod tests;
+mod test {
+    mod test_cell;
+}

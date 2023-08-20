@@ -11,6 +11,10 @@ The following command will create a `./pkg` directory with `*.wasm` build file.
 wasm-pack build --target web
 ```
 
+```console
+wasm-pack test --node
+```
+
 Copy the entire `./pkg` file into your project's directory tree
 
 * For example, if you are using svelte-kit, copy the whole `pkg` directory into `./src/lib` folder. 
@@ -42,3 +46,11 @@ Each `Cells` have string `address` such as (A1) and `row-column address`, that's
 `wxls` aims to allow users to 
 1. Create function over designated area.
 2. Quickly move cursors to designated location. 
+
+
+### WASM support page
+
+* https://rustwasm.github.io/wasm-bindgen/examples/without-a-bundler.html
+
+* Regarding `wasm-test`. https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/usage.html. 
+  * Test wasm functions uing `wasm-pack test --node`

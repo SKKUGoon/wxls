@@ -1,133 +1,134 @@
-use crate::{AddressComponent, Cell};
-// use wasm_bindgen::prelude::*;
+use crate::{console_log, Cell};
+use std::cmp;
+use wasm_bindgen::prelude::*;
 
-// #[wasm_bindgen]
+#[wasm_bindgen]
 #[derive(Debug, Clone)]
 pub struct Range {
-    pub sheet: String,
-    pub address: Cell,
+    /// A12:B45
+    /// ^^^
+    /// Define as Start
+    pub row_start: u32,
+    pub column_start: u32,
+
+    #[wasm_bindgen(getter_with_clone)]
+    pub sheet_start: Option<String>,
+
+    /// A12:B45
+    ///     ^^^
+    /// Define as End
+    pub row_end: u32,
+    pub column_end: u32,
+
+    #[wasm_bindgen(getter_with_clone)]
+    pub sheet_end: Option<String>,
 }
 
-// #[wasm_bindgen]
+// impl PartialEq for Range {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.address == other.address
+//     }
+// }
+
+#[wasm_bindgen]
 impl Range {
-    pub fn new(sheet: &str, rc_address: Cell) -> Self {
-        Range {
-            sheet: String::from(sheet),
-            address: rc_address,
-        }
-    }
-
-    pub fn to_str_address(&self) -> String {
-        let front = format!(
-            "{}!{}",
-            self.sheet,
-            self.address
-                .address_component(AddressComponent::Front)
-                .unwrap()
-        );
-
-        if let Ok(back) = self.address.address_component(AddressComponent::Back) {
-            format!("{}:{}!{}", front, self.sheet, back)
-        } else {
-            front
-        }
-    }
-
-    pub fn has(&self, other: &Range) -> bool {
-        if other.sheet != self.sheet {
-            return false;
-        }
-
-        if other.address == self.address {
-            return true;
-        }
-
-        let start_row_inside = self.address.start_row <= other.address.start_row;
-        let start_col_inside = self.address.start_col <= other.address.start_col;
-        let end_row_inside = match (self.address.end_row, other.address.end_row) {
-            (Some(ser), Some(oer)) => ser >= oer,
-            (Some(_), None) => true,
-            _ => false,
+    #[wasm_bindgen(constructor)]
+    pub fn new(start: &Cell, end: &Cell) -> Result<Range, String> {
+        // Root out the case where it has wrong sheets.
+        // If both cell has sheet, it should be the same.
+        // If only the ending cell has sheet, it's erroneous
+        // If only the starting cell has sheet, warn user that it cannot be used with `autofill` method of excel.
+        match (&start.sheet, &end.sheet) {
+            (Some(start_sheet), Some(end_sheet)) => {
+                if start_sheet != end_sheet {
+                    let msg = "[wxls] single range cannot have different sheets";
+                    console_log!("{}", msg);
+                    return Err(msg.to_string());
+                }
+            }
+            (Some(_), None) => {
+                let msg = "[wxls] `end` sheet not given. \
+                 reommend not using it as autofill";
+                console_log!("{}", msg);
+            }
+            (None, Some(_)) => {
+                let msg = "[wxls] if `end` Cell has sheet, `start` Cell's sheet is required";
+                console_log!("{}", msg);
+                return Err(msg.to_string());
+            }
+            _ => {}
         };
-        let end_col_inside = match (self.address.end_col, other.address.end_col) {
-            (Some(sec), Some(oec)) => sec >= oec,
-            (Some(_), None) => true,
-            _ => false,
-        };
-
-        start_row_inside && start_col_inside && end_row_inside && end_col_inside
-    }
-
-    pub fn new_include(self, other: Range) -> Result<Range, String> {
-        if other.sheet != self.sheet {
-            return Err("Cannot include other sheet".to_string());
-        }
-
-        if self.has(&other) {
-            return Ok(self);
-        }
-
-        // Change address to include `other`
-        let new_start_row = std::cmp::min(self.address.start_row, other.address.start_col);
-        let new_start_col = std::cmp::min(self.address.start_col, other.address.start_col);
-
-        let new_end_row = match (self.address.end_row, other.address.end_row) {
-            (Some(ser), Some(oer)) => std::cmp::max(ser, oer),
-            (Some(ser), None) => std::cmp::max(ser, other.address.start_row),
-            (None, Some(oer)) => std::cmp::max(self.address.start_row, oer),
-            _ => std::cmp::max(self.address.start_row, other.address.start_row),
-        };
-
-        let new_end_col = match (self.address.end_col, other.address.end_col) {
-            (Some(sec), Some(oec)) => std::cmp::max(sec, oec),
-            (Some(sec), None) => std::cmp::max(sec, other.address.start_col),
-            (None, Some(oec)) => std::cmp::max(self.address.start_col, oec),
-            _ => std::cmp::max(self.address.start_col, other.address.start_col),
-        };
-
-        let new_cell =
-            Cell::new(vec![new_start_row, new_end_row, new_start_col, new_end_col]).unwrap();
 
         Ok(Range {
-            sheet: self.sheet,
-            address: new_cell,
+            row_start: start.row,
+            column_start: start.column,
+            sheet_start: start.sheet.clone(),
+
+            row_end: end.row,
+            column_end: end.column,
+            sheet_end: end.sheet.clone(),
         })
     }
 
-    pub fn force_include(mut self, other: Range) -> Result<Range, String> {
-        if other.sheet != self.sheet {
-            return Err("Cannot include other sheet".to_string());
-        }
+    pub fn to_str_address(&self) -> String {
+        let cell_start = Cell::new(self.row_start, self.row_end, self.sheet_start.clone()).unwrap();
+        let cell_end = Cell::new(self.row_end, self.column_end, self.sheet_end.clone()).unwrap();
 
-        if self.has(&other) {
-            return Ok(self);
-        }
+        format!(
+            "{}:{}",
+            cell_start.to_str_address(),
+            cell_end.to_str_address()
+        )
+    }
 
-        // Change address to include `other`
-        self.address.start_row = std::cmp::min(self.address.start_row, other.address.start_col);
-        self.address.start_col = std::cmp::min(self.address.start_col, other.address.start_col);
-
-        self.address.end_row = match (self.address.end_row, other.address.end_row) {
-            (Some(ser), Some(oer)) => Some(std::cmp::max(ser, oer)),
-            (Some(ser), None) => Some(std::cmp::max(ser, other.address.start_row)),
-            (None, Some(oer)) => Some(std::cmp::max(self.address.start_row, oer)),
-            _ => Some(std::cmp::max(
-                self.address.start_row,
-                other.address.start_row,
-            )),
+    pub fn has(&self, target: &Cell) -> bool {
+        // sheet_start and sheet_end is the same.
+        // Guaranteed by `self.new`
+        let sheet_condition = match (&target.sheet, &self.sheet_start) {
+            (Some(target_sheet), Some(my_sheet)) => target_sheet == my_sheet,
+            (None, None) => true,
+            _ => false,
         };
 
-        self.address.end_col = match (self.address.end_col, other.address.end_col) {
-            (Some(sec), Some(oec)) => Some(std::cmp::max(sec, oec)),
-            (Some(sec), None) => Some(std::cmp::max(sec, other.address.start_col)),
-            (None, Some(oec)) => Some(std::cmp::max(self.address.start_col, oec)),
-            _ => Some(std::cmp::max(
-                self.address.start_col,
-                other.address.start_col,
-            )),
+        let index_condition = target.row >= self.row_start
+            && target.row <= self.row_end
+            && target.column >= self.column_start
+            && target.column <= self.column_end;
+
+        sheet_condition && index_condition
+    }
+
+    pub fn new_include(&mut self, target: &Cell) -> Result<Range, String> {
+        // If sheet is different, cannot include new target
+        match (&self.sheet_start, &target.sheet) {
+            (Some(my_sheet), Some(target_sheet)) => {
+                if my_sheet != target_sheet {
+                    let msg = "[wxls] cannot create range with different sheets";
+                    console_log!("{}", msg);
+                    return Err(msg.to_string());
+                }
+            }
+            (None, Some(_)) => {
+                let msg = "[wxls] cannot create range with different sheets";
+                console_log!("{}", msg);
+                return Err(msg.to_string());
+            }
+            _ => {}
         };
 
-        Ok(self)
+        if self.has(target) {
+            Ok(self.clone())
+        } else {
+            // Sheet information is guaranteed
+            Ok(Range {
+                row_start: cmp::min(target.row, self.row_start),
+                column_start: cmp::min(target.column, self.column_start),
+                sheet_start: self.sheet_start.clone(),
+                row_end: cmp::max(target.row, self.row_end),
+                column_end: cmp::max(target.column, self.column_end),
+                sheet_end: self.sheet_end.clone(),
+            })
+        }
     }
 
     // pub fn envelope<T>(matrix: Vec<Vec<T>>) {
