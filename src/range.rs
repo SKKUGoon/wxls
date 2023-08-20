@@ -24,11 +24,16 @@ pub struct Range {
     pub sheet_end: Option<String>,
 }
 
-// impl PartialEq for Range {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.address == other.address
-//     }
-// }
+impl PartialEq for Range {
+    fn eq(&self, other: &Self) -> bool {
+        self.row_start == other.row_start
+            && self.row_end == other.row_end
+            && self.column_start == other.column_start
+            && self.column_end == other.column_end
+            && self.sheet_start == other.sheet_start
+            && self.sheet_end == other.sheet_end
+    }
+}
 
 #[wasm_bindgen]
 impl Range {
@@ -70,6 +75,26 @@ impl Range {
         })
     }
 
+    pub fn range_start(&self) -> Cell {
+        Cell {
+            row: self.row_start,
+            column: self.column_start,
+            sheet: self.sheet_start.clone(),
+            fixed_row: false,
+            fixed_column: false,
+        }
+    }
+
+    pub fn range_end(&self) -> Cell {
+        Cell {
+            row: self.row_end,
+            column: self.column_end,
+            sheet: self.sheet_end.clone(),
+            fixed_row: false,
+            fixed_column: false,
+        }
+    }
+
     pub fn to_str_address(&self) -> String {
         let cell_start = Cell::new(self.row_start, self.row_end, self.sheet_start.clone()).unwrap();
         let cell_end = Cell::new(self.row_end, self.column_end, self.sheet_end.clone()).unwrap();
@@ -81,6 +106,7 @@ impl Range {
         )
     }
 
+    /// Check if the `Range` self includes target `Cell`.
     pub fn has(&self, target: &Cell) -> bool {
         // sheet_start and sheet_end is the same.
         // Guaranteed by `self.new`
@@ -98,6 +124,8 @@ impl Range {
         sheet_condition && index_condition
     }
 
+    /// new_include
+    /// Create new `Range` object that includes `target` `Cell` struct.
     pub fn new_include(&mut self, target: &Cell) -> Result<Range, String> {
         // If sheet is different, cannot include new target
         match (&self.sheet_start, &target.sheet) {
@@ -130,8 +158,4 @@ impl Range {
             })
         }
     }
-
-    // pub fn envelope<T>(matrix: Vec<Vec<T>>) {
-
-    // }
 }
