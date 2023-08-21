@@ -12,4 +12,9 @@ pub use util::*;
 #[cfg(test)]
 mod test {
     mod test_cell;
+    mod test_range;
+}
+
+mod math {
+    mod func;
 }

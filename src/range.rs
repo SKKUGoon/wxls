@@ -75,6 +75,7 @@ impl Range {
         })
     }
 
+    /// Return first component of range address.
     pub fn range_start(&self) -> Cell {
         Cell {
             row: self.row_start,
@@ -85,6 +86,7 @@ impl Range {
         }
     }
 
+    /// Return second(and ending) component of range address.
     pub fn range_end(&self) -> Cell {
         Cell {
             row: self.row_end,
@@ -96,8 +98,8 @@ impl Range {
     }
 
     pub fn to_str_address(&self) -> String {
-        let cell_start = Cell::new(self.row_start, self.row_end, self.sheet_start.clone()).unwrap();
-        let cell_end = Cell::new(self.row_end, self.column_end, self.sheet_end.clone()).unwrap();
+        let cell_start = self.range_start();
+        let cell_end = self.range_end();
 
         format!(
             "{}:{}",
@@ -126,7 +128,8 @@ impl Range {
 
     /// new_include
     /// Create new `Range` object that includes `target` `Cell` struct.
-    pub fn new_include(&mut self, target: &Cell) -> Result<Range, String> {
+    /// Note that the `Range` object always return square.
+    pub fn new_include(&self, target: &Cell) -> Result<Range, String> {
         // If sheet is different, cannot include new target
         match (&self.sheet_start, &target.sheet) {
             (Some(my_sheet), Some(target_sheet)) => {
