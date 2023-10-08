@@ -1,10 +1,12 @@
+use crate::util::cell_handle::*;
+use crate::{console_log, error};
+use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
-use crate::console_log;
-
-/// row: A1 => A$1
-/// column: A1 => $A1
-/// all: A1 => $A$1
+/// Enum representing the style of anchoring for Excel cells.
+/// - `Row`: Anchors the row, e.g., A1 becomes A$1.
+/// - `Column`: Anchors the column, e.g., A1 becomes $A1.
+/// - `All`: Anchors both row and column, e.g., A1 becomes $A$1.
 #[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
 pub enum AnchorStyle {
@@ -13,30 +15,26 @@ pub enum AnchorStyle {
     All = "all",
 }
 
-/// Cell
-/// Cell is the building block of wxls (WASM Excel) class structure
-/// that goes like `Cell` -> `Range` -> `ExcelFunc` ...
-/// `row` and `column` must be given, but `sheet` is optional.
+/// Represents a cell in an Excel sheet.
+/// Cells are the basic building blocks in the wxls (WASM Excel) class structure.
+/// The hierarchy goes like `Cell` -> `Range` -> `ExcelFunc`.
+/// Both `row` and `column` are mandatory, but `sheet` is optional.
 #[wasm_bindgen]
 #[derive(Debug, Default, Clone)]
 pub struct Cell {
-    /// Row start from index 0. ex) 0 => Excel Row 1, 1 => Excel Row 2,
+    /// Row start from index 0. For example, 0 => Excel Row 1, 1 => Excel Row 2,
     pub row: u32,
-    /// Column start from index 0. ex) 0 => A, 1 => B, ...
+    /// Column start from index 0. For example, 0 => A, 1 => B, ...
     pub column: u32,
-
-    /// WASM package should support clone. Make Clone with (`getter_with_clone`)
-    /// If sheet is `None`, the Cell is located locally.
-    /// Microsoft Office JS API offers autofill functions. When autofilling
-    /// `None` sheet cells, it's pruned to be erroneous. Recommend using `sheet` option.
+    /// Optional sheet name. If `None`, the cell is considered local.
+    /// It's recommended to use the `sheet` option as Microsoft Office JS API's autofill functions may prune `None` sheet cells.
     #[wasm_bindgen(getter_with_clone)]
+    // WASM package should support clone. Make Clone with (`getter_with_clone`)
     pub sheet: Option<String>,
 
-    /// Excel Cell can be anchored so that copy and pasting or dragging the formulas
-    /// cannot affect the address.
-    /// `fixed_row` anchors the row. A1 => A$1
+    /// Indicates if the row is anchored. When true, A1 becomes A$1.
     pub fixed_row: bool,
-    /// `fixed_row` anchors the column A1 => $A1
+    /// Indicates if the column is anchored. When true, A1 becomes $A1.
     pub fixed_column: bool,
 }
 
@@ -49,6 +47,38 @@ impl PartialEq for Cell {
         };
 
         same_sheet && (self.row == other.row && self.column == other.column)
+    }
+}
+
+impl FromStr for Cell {
+    type Err = error::WebExcelError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Check whether `s` contains any illegal character
+
+        // Check whether `s` contains character "!". String in front of "!" goes to sheet name
+        const SHEET_DIVIDE: &str = "!";
+
+        if s.contains(SHEET_DIVIDE) {
+            // Parse address with sheet
+            let cell_name_parsed: Vec<&str> = s.split(SHEET_DIVIDE).collect();
+
+            // Create cells
+            let mut cell = address_to_r1c1(cell_name_parsed[1])?;
+
+            // Add sheet name
+            cell.sheet = Some(cell_name_parsed[0].to_owned());
+
+            Ok(cell)
+        } else {
+            // Parse address without sheet information
+            let mut cell = address_to_r1c1(s)?;
+
+            // Add sheet name
+            cell.sheet = None;
+
+            Ok(cell)
+        }
     }
 }
 
@@ -70,6 +100,8 @@ impl Cell {
         }
     }
 
+    /// TODO: When `trait impls` are supported in `wasm_bindgen`
+    /// Change it to std::str::FromStr trait impl
     pub fn from_str_address(data: &str, sheet: Option<String>) -> Result<Cell, String> {
         let chars = data.chars();
         let mut column = 0isize;
@@ -173,8 +205,10 @@ impl Cell {
     }
 
     pub fn reposition(&mut self, vertical_offset: i32, horizontal_offset: i32) {
-        self.v_reposition(vertical_offset).err();
-        self.h_reposition(horizontal_offset).err();
+        self.v_reposition(vertical_offset)
+            .expect("[wxls] vertical repositioning failed");
+        self.h_reposition(horizontal_offset)
+            .expect("[wxls] horizontal repositioning failed");
     }
 
     fn v_reposition(&mut self, vertical_offset: i32) -> Result<(), String> {
@@ -202,7 +236,7 @@ impl Cell {
         }
     }
 
-    pub fn h_reposition(&mut self, horizontal_offset: i32) -> Result<(), String> {
+    fn h_reposition(&mut self, horizontal_offset: i32) -> Result<(), String> {
         match horizontal_offset {
             x if x >= 0 => {
                 self.column += x as u32;
