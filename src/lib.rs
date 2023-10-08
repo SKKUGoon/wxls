@@ -1,20 +1,23 @@
 pub mod cell;
+pub mod error;
 pub mod range;
-
-#[macro_use]
-mod util;
 
 pub use cell::*;
 pub use range::*;
-pub use util::*;
 
-// Write unit test for each methods
+pub mod util {
+    #[macro_use]
+    pub mod macros;
+    pub mod cell_handle;
+}
+
+pub mod math {
+    mod func;
+}
+
 #[cfg(test)]
 mod test {
     mod test_cell;
     mod test_range;
-}
-
-mod math {
-    mod func;
+    mod test_util;
 }
