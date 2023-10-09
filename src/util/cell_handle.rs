@@ -81,7 +81,12 @@ pub fn address_to_r1c1(addr: &str) -> Result<cell::Cell, error::WebExcelError> {
 /// assert_eq!(r1c1_to_address(1, 16383), "XFD2");
 /// ```
 ///
-pub fn r1c1_to_address(row: u32, col: u32) -> Result<String, error::WebExcelError> {
+pub fn r1c1_to_address(
+    row: u32,
+    col: u32,
+    row_lock: bool,
+    col_lock: bool,
+) -> Result<String, error::WebExcelError> {
     // Input check
     if col > 16383 || row > 1048575 {
         return Err(error::WebExcelError::OutOfBoundError);
@@ -92,23 +97,32 @@ pub fn r1c1_to_address(row: u32, col: u32) -> Result<String, error::WebExcelErro
 
     // Column
     let mut addr_col = col + 1;
-    let mut column_collect: Vec<char> = vec![];
+    let mut elements: Vec<char> = vec![];
+
+    if row_lock {
+        elements.push('$');
+    }
 
     if addr_col == 0 {
-        column_collect.push('A');
+        elements.push('A');
     }
 
     while addr_col > 0 {
         addr_col -= 1;
         let remainder = (addr_col % 26) as u8;
         let pos = (remainder + b'A') as char;
-        column_collect.push(pos);
+        elements.push(pos);
         addr_col /= 26;
     }
-    column_collect.reverse();
+
+    if col_lock {
+        elements.push('$');
+    }
+
+    elements.reverse();
     Ok(format!(
         "{}{}",
-        column_collect.iter().collect::<String>(),
+        elements.iter().collect::<String>(),
         addr_row
     ))
 }
