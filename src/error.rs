@@ -7,6 +7,7 @@ pub enum WebExcelError {
     ParseError,
     OutOfBoundError,
     RelocateError,
+    RangeDiffSheetError,
 }
 
 impl fmt::Display for WebExcelError {
@@ -15,6 +16,10 @@ impl fmt::Display for WebExcelError {
             WebExcelError::ParseError => write!(f, "WebExcel parse error"),
             WebExcelError::OutOfBoundError => write!(f, "WebExcel address out of bound error"),
             WebExcelError::RelocateError => write!(f, "WebExcel relocate error"),
+            WebExcelError::RangeDiffSheetError => write!(
+                f,
+                "WebExcel cannot create range with two different sheet for cells"
+            ),
         }
     }
 }
