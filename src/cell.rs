@@ -1,3 +1,4 @@
+use crate::error::WebExcelError;
 use crate::util::cell_handle::*;
 use crate::{console_log, error};
 use std::str::FromStr;
@@ -85,7 +86,7 @@ impl FromStr for Cell {
 #[wasm_bindgen]
 impl Cell {
     #[wasm_bindgen(constructor)]
-    pub fn new(row: u32, column: u32, sheet: Option<String>) -> Result<Cell, String> {
+    pub fn new(row: u32, column: u32, sheet: Option<String>) -> Result<Cell, WebExcelError> {
         if true {
             Ok(Cell {
                 row,
@@ -94,55 +95,17 @@ impl Cell {
                 ..Default::default()
             })
         } else {
-            let msg = "[wxls] extensive cell creation error".to_string();
-            console_log!("{}", msg);
-            Err(msg)
+            console_log!("[wxls] extensive cell creation error");
+            Err(WebExcelError::ParseError)
         }
     }
 
-    /// TODO: When `trait impls` are supported in `wasm_bindgen`
-    /// Change it to std::str::FromStr trait impl
-    pub fn from_str_address(data: &str, sheet: Option<String>) -> Result<Cell, String> {
-        let chars = data.chars();
-        let mut column = 0isize;
-        let mut row = 0isize;
+    /// Wrapper function with
+    pub fn from_str_address(data: &str, sheet: Option<String>) -> Result<Cell, WebExcelError> {
+        let mut cell = Cell::from_str(data)?;
+        cell.sheet = sheet;
 
-        // Cell address `data` contains 2 parts;
-        // Row in positive integer(capture with is_ascii_digit),
-        //   and Column Starting from A(capture with is_ascii_alphabetic)
-        for c in chars {
-            if c.is_ascii_digit() {
-                row = row * 10 + (c as usize - '0' as usize) as isize;
-            } else if c.is_ascii_alphabetic() {
-                // If Column A - Z is done, it's changed to AA, AB, AC... until XFD.
-                // Subtract  - 'A' ascii number. This act as an offset. A = 0, B = 1
-                // If column is not 0, It means that the column notaion has more than 1 letter.
-                // Multiply 26 to handle more than 1 letter column.
-                column =
-                    column * 26 + (c.to_ascii_uppercase() as usize - 'A' as usize) as isize + 1;
-            } else {
-                let msg = format!(
-                    "[wxls] string address conversion error. \
-                    Type aside from digit, and alphabets are used {}",
-                    data
-                );
-                console_log!("{}", msg);
-                return Err(msg);
-            }
-        }
-
-        if row - 1 < 0 || column - 1 < 0 {
-            let msg = "[wxls] string address returned negative ro and column".to_string();
-            console_log!("{}", msg);
-            return Err(msg);
-        }
-
-        Ok(Cell {
-            row: (row - 1) as u32,
-            column: (column - 1) as u32,
-            sheet,
-            ..Default::default()
-        })
+        Ok(cell)
     }
 
     /// Attach acquired sheet information to structure
@@ -150,31 +113,12 @@ impl Cell {
         self.sheet = Some(s);
     }
 
-    pub fn to_str_address(&self) -> String {
-        let wr = self.row + 1;
-        let mut wc = self.column + 1;
-
-        let mut str_column = String::from("");
-        str_column = loop {
-            let remain = (wc - 1) % 26; // Mod by 26 (total number of alphabet)
-            let name_element = char::from_u32(65u32 + remain).unwrap(); // Add 65, Code point for letter 'A' in unicode.
-
-            str_column.push(name_element);
-            wc = (wc - remain) / 26;
-            if wc == 0 {
-                break rc_fix(&str_column, false);
-            }
-        };
-
-        let str_row = rc_fix(&wr.to_string(), false);
+    pub fn to_str_address(&self) -> Result<String, WebExcelError> {
+        let addr = r1c1_to_address(self.row, self.column, self.fixed_row, self.fixed_column)?;
 
         match &self.sheet {
-            Some(my_sheet) => {
-                format!("{}!{}{}", my_sheet, str_column, str_row)
-            }
-            None => {
-                format!("{}{}", str_column, str_row)
-            }
+            Some(str) => Ok(format!("{}!{}", str, addr)),
+            None => Ok(addr),
         }
     }
 
@@ -259,14 +203,5 @@ impl Cell {
                 }
             }
         }
-    }
-}
-
-fn rc_fix(value: &str, fix: bool) -> String {
-    if fix {
-        let fixed = format!("${}", value);
-        fixed
-    } else {
-        String::from(value)
     }
 }
