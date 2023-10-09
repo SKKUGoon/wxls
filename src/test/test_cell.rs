@@ -43,7 +43,7 @@ fn test_to_cell_address_fixed() {
 
     for (letter, idx) in cell_addrs.into_iter().zip(from_index.into_iter()) {
         let mut cell_idx = Cell::new(idx.0, idx.1, None).unwrap();
-        cell_idx.anchor(AnchorStyle::All);
+        cell_idx.anchor(CellAnchorStyle::All);
         assert_eq!(cell_idx.to_str_address().unwrap(), letter.to_owned())
     }
 }
@@ -55,7 +55,7 @@ fn test_to_cell_address_column_fix() {
 
     for (letter, idx) in cell_addrs.into_iter().zip(from_index.into_iter()) {
         let mut cell_idx = Cell::new(idx.0, idx.1, None).unwrap();
-        cell_idx.anchor(AnchorStyle::Column);
+        cell_idx.anchor(CellAnchorStyle::Column);
         assert_eq!(cell_idx.to_str_address().unwrap(), letter.to_owned())
     }
 }
@@ -67,7 +67,7 @@ fn test_to_cell_address_row_fix() {
 
     for (letter, idx) in cell_addrs.into_iter().zip(from_index.into_iter()) {
         let mut cell_idx = Cell::new(idx.0, idx.1, None).unwrap();
-        cell_idx.anchor(AnchorStyle::Row);
+        cell_idx.anchor(CellAnchorStyle::Row);
         assert_eq!(cell_idx.to_str_address().unwrap(), letter.to_owned())
     }
 }
