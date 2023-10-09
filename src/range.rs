@@ -1,164 +1,88 @@
-// use crate::{console_log, Cell};
-// use std::cmp;
-// use wasm_bindgen::prelude::*;
+use crate::error::WebExcelError;
+use crate::{cell::Cell, error};
+use std::mem;
+use wasm_bindgen::prelude::*;
 
-// #[wasm_bindgen]
-// #[derive(Debug, Clone)]
-// pub struct Range {
-//     /// A12:B45
-//     /// ^^^
-//     /// Define as Start
-//     pub row_start: u32,
-//     pub column_start: u32,
+#[wasm_bindgen]
+#[derive(Copy, Clone, Debug)]
+pub enum RangeAnchorStyle {
+    Row = "row",
+    Column = "column",
+    Start = "start",
+    End = "end",
+    All = "all",
+}
 
-//     #[wasm_bindgen(getter_with_clone)]
-//     pub sheet_start: Option<String>,
+#[wasm_bindgen]
+#[derive(Debug, Default, Clone)]
+pub struct Range {
+    #[wasm_bindgen(getter_with_clone)]
+    pub cell_start: Cell,
 
-//     /// A12:B45
-//     ///     ^^^
-//     /// Define as End
-//     pub row_end: u32,
-//     pub column_end: u32,
+    #[wasm_bindgen(getter_with_clone)]
+    pub cell_end: Cell,
+}
 
-//     #[wasm_bindgen(getter_with_clone)]
-//     pub sheet_end: Option<String>,
-// }
+impl PartialEq for Range {
+    fn eq(&self, other: &Self) -> bool {
+        self.cell_start == other.cell_start && self.cell_end == other.cell_end
+    }
+}
 
-// impl PartialEq for Range {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.row_start == other.row_start
-//             && self.row_end == other.row_end
-//             && self.column_start == other.column_start
-//             && self.column_end == other.column_end
-//             && self.sheet_start == other.sheet_start
-//             && self.sheet_end == other.sheet_end
-//     }
-// }
+#[wasm_bindgen]
+impl Range {
+    /// Ensures that `cell_start` is positioned before `cell_end` in terms of row and column.
+    /// If `cell_start` is positioned after `cell_end` in any dimension (row or column),
+    /// their positions are swapped to make the range valid.
+    fn correctify(&mut self) {
+        let (mut new_start, mut new_end) = (self.cell_start.clone(), self.cell_end.clone());
 
-// #[wasm_bindgen]
-// impl Range {
-//     #[wasm_bindgen(constructor)]
-//     pub fn new(start: &Cell, end: &Cell) -> Result<Range, String> {
-//         // Root out the case where it has wrong sheets.
-//         // If both cell has sheet, it should be the same.
-//         // If only the ending cell has sheet, it's erroneous
-//         // If only the starting cell has sheet, warn user that it cannot be used with `autofill` method of excel.
-//         match (&start.sheet, &end.sheet) {
-//             (Some(start_sheet), Some(end_sheet)) => {
-//                 if start_sheet != end_sheet {
-//                     let msg = "[wxls] single range cannot have different sheets";
-//                     console_log!("{}", msg);
-//                     return Err(msg.to_string());
-//                 }
-//             }
-//             (Some(_), None) => {
-//                 let msg = "[wxls] `end` sheet not given. \
-//                  reommend not using it as autofill";
-//                 console_log!("{}", msg);
-//             }
-//             (None, Some(_)) => {
-//                 let msg = "[wxls] if `end` Cell has sheet, `start` Cell's sheet is required";
-//                 console_log!("{}", msg);
-//                 return Err(msg.to_string());
-//             }
-//             _ => {}
-//         };
+        // If the start cell's column is greater than the end cell's column, swap them.
+        if self.cell_start.column > self.cell_end.column {
+            mem::swap(&mut new_start.column, &mut new_end.column);
+        }
 
-//         Ok(Range {
-//             row_start: start.row,
-//             column_start: start.column,
-//             sheet_start: start.sheet.clone(),
+        // If the start cell's row is greater than the end cell's row, swap them.
+        if self.cell_start.row > self.cell_end.row {
+            mem::swap(&mut new_start.row, &mut new_end.row);
+        }
 
-//             row_end: end.row,
-//             column_end: end.column,
-//             sheet_end: end.sheet.clone(),
-//         })
-//     }
+        self.cell_start = new_start;
+        self.cell_end = new_end;
+    }
 
-//     /// Return first component of range address.
-//     pub fn range_start(&self) -> Cell {
-//         Cell {
-//             row: self.row_start,
-//             column: self.column_start,
-//             sheet: self.sheet_start.clone(),
-//             fixed_row: false,
-//             fixed_column: false,
-//         }
-//     }
+    #[wasm_bindgen(constructor)]
+    pub fn new(start: &Cell, end: &Cell) -> Result<Range, error::WebExcelError> {
+        if start.sheet != end.sheet {
+            return Err(WebExcelError::RangeDiffSheetError);
+        }
 
-//     /// Return second(and ending) component of range address.
-//     pub fn range_end(&self) -> Cell {
-//         Cell {
-//             row: self.row_end,
-//             column: self.column_end,
-//             sheet: self.sheet_end.clone(),
-//             fixed_row: false,
-//             fixed_column: false,
-//         }
-//     }
+        let mut range = Range {
+            cell_start: start.clone(),
+            cell_end: end.clone(),
+        };
 
-//     pub fn to_str_address(&self) -> String {
-//         let cell_start = self.range_start();
-//         let cell_end = self.range_end();
+        // Check starting cell and ending cell, re-arragne them if necessary
+        range.correctify();
 
-//         format!(
-//             "{}:{}",
-//             cell_start.to_str_address(),
-//             cell_end.to_str_address()
-//         )
-//     }
+        Ok(range)
+    }
 
-//     /// Check if the `Range` self includes target `Cell`.
-//     pub fn has(&self, target: &Cell) -> bool {
-//         // sheet_start and sheet_end is the same.
-//         // Guaranteed by `self.new`
-//         let sheet_condition = match (&target.sheet, &self.sheet_start) {
-//             (Some(target_sheet), Some(my_sheet)) => target_sheet == my_sheet,
-//             (None, None) => true,
-//             _ => false,
-//         };
+    pub fn to_str_address(&self) -> Result<String, error::WebExcelError> {
+        let addr_start = self.cell_start.to_str_address()?;
+        let addr_end = self.cell_end.to_str_address()?;
 
-//         let index_condition = target.row >= self.row_start
-//             && target.row <= self.row_end
-//             && target.column >= self.column_start
-//             && target.column <= self.column_end;
+        Ok(format!("{}:{}", addr_start, addr_end))
+    }
 
-//         sheet_condition && index_condition
-//     }
+    pub fn has(&self, target: &Cell) -> bool {
+        self.cell_start.row <= target.row
+            && self.cell_end.row >= target.row
+            && self.cell_start.column <= target.column
+            && self.cell_end.column >= target.column
+    }
 
-//     /// new_include
-//     /// Create new `Range` object that includes `target` `Cell` struct.
-//     /// Note that the `Range` object always return square.
-//     pub fn new_include(&self, target: &Cell) -> Result<Range, String> {
-//         // If sheet is different, cannot include new target
-//         match (&self.sheet_start, &target.sheet) {
-//             (Some(my_sheet), Some(target_sheet)) => {
-//                 if my_sheet != target_sheet {
-//                     let msg = "[wxls] cannot create range with different sheets";
-//                     console_log!("{}", msg);
-//                     return Err(msg.to_string());
-//                 }
-//             }
-//             (None, Some(_)) => {
-//                 let msg = "[wxls] cannot create range with different sheets";
-//                 console_log!("{}", msg);
-//                 return Err(msg.to_string());
-//             }
-//             _ => {}
-//         };
+    pub fn iter_col() {}
 
-//         if self.has(target) {
-//             Ok(self.clone())
-//         } else {
-//             // Sheet information is guaranteed
-//             Ok(Range {
-//                 row_start: cmp::min(target.row, self.row_start),
-//                 column_start: cmp::min(target.column, self.column_start),
-//                 sheet_start: self.sheet_start.clone(),
-//                 row_end: cmp::max(target.row, self.row_end),
-//                 column_end: cmp::max(target.column, self.column_end),
-//                 sheet_end: self.sheet_end.clone(),
-//             })
-//         }
-//     }
-// }
+    pub fn iter_row() {}
+}
