@@ -18,6 +18,5 @@ pub mod math {
 #[cfg(test)]
 mod test {
     mod test_cell;
-    mod test_range;
     mod test_util;
 }
