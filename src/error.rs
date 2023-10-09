@@ -20,3 +20,12 @@ impl fmt::Display for WebExcelError {
 }
 
 impl std::error::Error for WebExcelError {}
+
+impl Into<JsValue> for WebExcelError {
+    // Need `Into<JsValue>`
+    fn into(self) -> JsValue {
+        // Convert the error enum into a string representation
+        let error_message = format!("{}", self);
+        JsValue::from_str(&error_message)
+    }
+}
