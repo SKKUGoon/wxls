@@ -10,7 +10,7 @@ use wasm_bindgen::prelude::*;
 /// - `All`: Anchors both row and column, e.g., A1 becomes $A$1.
 #[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
-pub enum AnchorStyle {
+pub enum CellAnchorStyle {
     Row = "row",
     Column = "column",
     All = "all",
@@ -108,11 +108,6 @@ impl Cell {
         Ok(cell)
     }
 
-    /// Attach acquired sheet information to structure
-    pub fn attach_sheet(&mut self, s: String) {
-        self.sheet = Some(s);
-    }
-
     pub fn to_str_address(&self) -> Result<String, WebExcelError> {
         let addr = r1c1_to_address(self.row, self.column, self.fixed_row, self.fixed_column)?;
 
@@ -122,17 +117,22 @@ impl Cell {
         }
     }
 
-    pub fn anchor(&mut self, axis: AnchorStyle) {
+    /// Attach acquired sheet information to structure
+    pub fn set_sheet(&mut self, s: String) {
+        self.sheet = Some(s);
+    }
+
+    pub fn anchor(&mut self, axis: CellAnchorStyle) {
         match axis {
-            AnchorStyle::Row => {
+            CellAnchorStyle::Row => {
                 self.fixed_row = true;
                 self.fixed_column = false;
             }
-            AnchorStyle::Column => {
+            CellAnchorStyle::Column => {
                 self.fixed_column = true;
                 self.fixed_row = false;
             }
-            AnchorStyle::All => {
+            CellAnchorStyle::All => {
                 self.fixed_row = true;
                 self.fixed_column = true;
             }
@@ -148,14 +148,14 @@ impl Cell {
         self.fixed_row = false;
     }
 
-    pub fn reposition(&mut self, vertical_offset: i32, horizontal_offset: i32) {
-        self.v_reposition(vertical_offset)
+    pub fn reset(&mut self, vertical_offset: i32, horizontal_offset: i32) {
+        self.reset_vertical(vertical_offset)
             .expect("[wxls] vertical repositioning failed");
-        self.h_reposition(horizontal_offset)
+        self.reset_horizontal(horizontal_offset)
             .expect("[wxls] horizontal repositioning failed");
     }
 
-    fn v_reposition(&mut self, vertical_offset: i32) -> Result<(), String> {
+    fn reset_vertical(&mut self, vertical_offset: i32) -> Result<(), String> {
         match vertical_offset {
             y if y >= 0 => {
                 self.row += y as u32;
@@ -180,7 +180,7 @@ impl Cell {
         }
     }
 
-    fn h_reposition(&mut self, horizontal_offset: i32) -> Result<(), String> {
+    fn reset_horizontal(&mut self, horizontal_offset: i32) -> Result<(), String> {
         match horizontal_offset {
             x if x >= 0 => {
                 self.column += x as u32;
