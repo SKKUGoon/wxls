@@ -1,5 +1,6 @@
 [package]
 name = "wxls"
+repository = "https://github.com/SKKUGoon/wxls"
 authors = ["skkugoon <baesangil0906@gmail.com>"]
 description = "Webassembly code for xls function generation"
 version = "0.1.0"
