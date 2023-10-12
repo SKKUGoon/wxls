@@ -77,6 +77,11 @@ wasm-pack test --node
     * For example, if you are using svelte-kit, copy the whole `pkg` directory into `./src/lib` folder. 
 2. Call the `wasm` by using `import * as wasm from $lib/pkg` script.
 
+### Example usage on React
+
+See the example page on `example/react-example` [here]("./example/react-example")
+
+
 ## 3. WASM support pages
 
 * Regarding `wasm-test`. [Testing](https://rustwasm.github.io/wasm-bindgen/wasm-bindgen-test/usage.html).

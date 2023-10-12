@@ -1,2 +1,29 @@
 /target
 ./pkg
+
+./example/react-example/node_modules
+example/react-example/node_modules
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+./example/react-example/.pnp
+./example/react-example/.pnp.js
+
+# testing
+./example/react-example/coverage
+
+# production
+./example/react-example/build
+
+# misc
+./example/react-example/.DS_Store
+./example/react-example/.env.local
+./example/react-example/.env.development.local
+./example/react-example/.env.test.local
+./example/react-example/.env.production.local
+
+./example/react-example/npm-debug.log*
+./example/react-example/yarn-debug.log*
+./example/react-example/yarn-error.log*
