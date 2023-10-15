@@ -35,10 +35,10 @@ impl PartialEq for Range {
 
 #[wasm_bindgen]
 impl Range {
-    /// Ensures that `cell_start` is positioned before `cell_end` in terms of row and column.
-    /// If `cell_start` is positioned after `cell_end` in any dimension (row or column),
-    /// their positions are swapped to make the range valid.
+    /// Ensures that `cell_start` is always before `cell_end`
     fn correctify(&mut self) {
+        // If `cell_start` is positioned after `cell_end` in any dimension (row or column),
+        // their positions are swapped to make the range valid.
         let (mut new_start, mut new_end) = (self.cell_start.clone(), self.cell_end.clone());
 
         // If the start cell's column is greater than the end cell's column, swap them.
@@ -75,6 +75,7 @@ impl Range {
         Ok(range)
     }
 
+    /// Convert the range to a string representation.
     pub fn to_str_address(&self) -> Result<String, WebExcelError> {
         let addr_start = self.cell_start.to_str_address()?;
         let addr_end = self.cell_end.to_str_address()?;
@@ -82,7 +83,7 @@ impl Range {
         Ok(format!("{}:{}", addr_start, addr_end))
     }
 
-    /// Check if the `Range` includes certain `Cell`
+    /// Check if a cell is within the range.
     pub fn has(&self, target: &Cell) -> bool {
         self.cell_start.row <= target.row
             && self.cell_end.row >= target.row
@@ -90,9 +91,7 @@ impl Range {
             && self.cell_end.column >= target.column
     }
 
-    /// Check if the `Range` has sub range `Range`
-    /// It's guranteed that cell_end has later row, column indices
-    /// by `correctify` function.
+    /// Check if a range is completely within this range.
     pub fn includes(&self, target: &Range) -> bool {
         self.cell_start.row <= target.cell_start.row
             && self.cell_end.row >= target.cell_end.row
@@ -100,6 +99,59 @@ impl Range {
             && self.cell_end.column >= target.cell_end.column
     }
 
+    /// Check if this range intersects with another range.
+    pub fn intersects(&self, other: &Range) -> Result<bool, WebExcelError> {
+        let other_inv_tr = Cell::new(other.cell_start.row, other.cell_end.column, None)?;
+        let other_inv_bl = Cell::new(other.cell_end.row, other.cell_start.column, None)?;
+
+        let self_inv_tr = Cell::new(self.cell_start.row, self.cell_end.column, None)?;
+        let self_inv_bl = Cell::new(self.cell_end.row, self.cell_start.column, None)?;
+
+        Ok(self.has(&other_inv_bl)
+            || self.has(&other_inv_tr)
+            || other.has(&self_inv_bl)
+            || other.has(&self_inv_tr))
+    }
+
+    /// Extract a sub-range of columns from the current range.
+    pub fn select_columns(
+        &self,
+        column_start: usize,
+        column_end: usize,
+    ) -> Result<Range, WebExcelError> {
+        let new_start = Cell::new(
+            self.cell_start.row,
+            self.cell_start.column + column_start as u32,
+            self.cell_start.sheet.clone(),
+        )?;
+
+        let new_end = Cell::new(
+            self.cell_end.row,
+            self.cell_start.column + column_end as u32,
+            self.cell_start.sheet.clone(),
+        )?;
+
+        Range::new(&new_start, &new_end)
+    }
+
+    /// Extract a sub-range of rows from the current range.
+    pub fn select_row(&self, row_start: usize, row_end: usize) -> Result<Range, WebExcelError> {
+        let new_start = Cell::new(
+            self.cell_start.row + row_start as u32,
+            self.cell_start.column,
+            self.cell_start.sheet.clone(),
+        )?;
+
+        let new_end = Cell::new(
+            self.cell_start.row + row_end as u32,
+            self.cell_start.column,
+            self.cell_start.sheet.clone(),
+        )?;
+
+        Range::new(&new_start, &new_end)
+    }
+
+    /// Create an iterator over columns within the range.
     pub fn iter_col(&self) -> Result<js_sys::Array, WebExcelError> {
         let mut addresses: Vec<String> = Vec::new();
 
@@ -119,6 +171,7 @@ impl Range {
         Ok(boxed.iter().map(JsValue::from).collect::<js_sys::Array>())
     }
 
+    /// Create an iterator over rows within the range.
     pub fn iter_row(&self) -> Result<js_sys::Array, WebExcelError> {
         let mut addresses: Vec<String> = Vec::new();
 

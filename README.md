@@ -46,6 +46,9 @@ WebAssembly utility file for Microsoft Office (Excel) JS API. WXLS originally st
     }
     ```
 
+    > <b>Developer comment</b> :
+    > Note that if you want to nest cells, one must add `wasm_bindgen(getter_with_clone)` on top of the field. 
+
 * `Mathmatics` - On building process
 
 * `WebExcelError` - Rosetta project's dedicated custom error. Mind that one needs to implement `Into<JsValue>`.
@@ -79,7 +82,11 @@ wasm-pack test --node
 
 ### Example usage on React
 
-See the example page on `example/react-example` [here]("./example/react-example")
+See the example page on `example/react-example` [here](./example/react-example)
+
+### Example usage on Svelte(kit)
+
+(In preparation)
 
 
 ## 3. WASM support pages
