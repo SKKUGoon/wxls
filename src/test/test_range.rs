@@ -142,3 +142,60 @@ fn test_range_iter_row() {
     // console_log!("{:?}", rows);
     println!("{:?}", rows);
 }
+
+#[wasm_bindgen_test]
+fn test_range_select_row() {
+    // Define base cells
+    let cell11 = Cell::from_str_address("A1", None).unwrap();
+    let cell12 = Cell::from_str_address("Z100", None).unwrap();
+
+    // Initiate range defined by two base cells
+    let range1 = Range::new(&cell11, &cell12).unwrap();
+
+    // Select row by row
+    let row1 = range1.select_row(0, 1).unwrap();
+    assert_eq!(row1.to_str_address().unwrap(), "A1:Z1");
+
+    let row2 = range1.select_row(1, 2).unwrap();
+    assert_eq!(row2.to_str_address().unwrap(), "A2:Z2");
+
+    let row3 = range1.select_row(0, 10).unwrap();
+    assert_eq!(row3.to_str_address().unwrap(), "A1:Z10");
+}
+
+#[wasm_bindgen_test]
+fn test_range_select_col() {
+    // Define base cells
+    let cell11 = Cell::from_str_address("A1", None).unwrap();
+    let cell12 = Cell::from_str_address("Z100", None).unwrap();
+
+    // Initiate range defined by two base cells
+    let range1 = Range::new(&cell11, &cell12).unwrap();
+
+    // Select column by column
+    let column1 = range1.select_column(0, 1).unwrap();
+    assert_eq!(column1.to_str_address().unwrap(), "A1:A100");
+
+    let column2 = range1.select_column(2, 4).unwrap();
+    assert_eq!(column2.to_str_address().unwrap(), "C1:D100");
+
+    let column3 = range1.select_column(0, 5).unwrap();
+    assert_eq!(column3.to_str_address().unwrap(), "A1:E100");
+}
+
+#[wasm_bindgen_test]
+fn test_range_intersects() {
+    // Define base cells
+    let cell11 = Cell::from_str_address("A1", None).unwrap();
+    let cell12 = Cell::from_str_address("Z100", None).unwrap();
+
+    let cell21 = Cell::from_str_address("Z98", None).unwrap();
+    let cell22 = Cell::from_str_address("AB12", None).unwrap();
+
+    // Initiate range defined by two base cells
+    let range1 = Range::new(&cell11, &cell12).unwrap();
+    let range2 = Range::new(&cell21, &cell22).unwrap();
+
+    assert!(range1.intersects(&range2).unwrap());
+    assert!(range2.intersects(&range1).unwrap());
+}

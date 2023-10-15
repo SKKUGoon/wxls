@@ -114,7 +114,7 @@ impl Range {
     }
 
     /// Extract a sub-range of columns from the current range.
-    pub fn select_columns(
+    pub fn select_column(
         &self,
         column_start: usize,
         column_end: usize,
@@ -127,7 +127,7 @@ impl Range {
 
         let new_end = Cell::new(
             self.cell_end.row,
-            self.cell_start.column + column_end as u32,
+            self.cell_start.column + (column_end - 1) as u32,
             self.cell_start.sheet.clone(),
         )?;
 
@@ -143,8 +143,8 @@ impl Range {
         )?;
 
         let new_end = Cell::new(
-            self.cell_start.row + row_end as u32,
-            self.cell_start.column,
+            self.cell_start.row + (row_end - 1) as u32,
+            self.cell_end.column,
             self.cell_start.sheet.clone(),
         )?;
 
